@@ -1,4 +1,4 @@
-package clients
+package client
 
 import (
 	"log/slog"
@@ -17,7 +17,7 @@ func Create(cfg config.MinIOConfig) (*minio.Client, error) {
 	if err != nil {
 		slog.Error("Ошибка при подключении к MinIO", "error", err)
 		return nil, err
-	}	
+	}
 
 	slog.Info("minioClient подключен", "endpoint", cfg.Endpoint)
 	return minioClient, nil

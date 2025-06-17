@@ -8,11 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"test_minio/buckets"
-	"test_minio/clients"
+	"test_minio/bucket"
+	"test_minio/client"
 	"test_minio/config"
-	"test_minio/handlers"
-	"time"
+	"test_minio/handler"
 )
 
 func Run() error {
@@ -24,17 +23,17 @@ func Run() error {
 		return err
 	}
 
-	minioClient, err := clients.Create(*cfg)
+	minioClient, err := client.Create(*cfg)
 	if err != nil {
 		return err
 	}
 
-	err = buckets.Create(ctx, minioClient, cfg.BucketName, cfg.Location)
+	err = bucket.Create(ctx, minioClient, cfg.BucketName, cfg.Location)
 	if err != nil {
 		return err
 	}
 
-	s := handlers.NewServer(ctx, minioClient, cfg.BucketName)
+	s := handler.NewServer(ctx, minioClient, cfg.BucketName)
 
 	go startHTTPServer(s.HTTPServer, s.HTTPServer.Addr)
 
@@ -43,17 +42,17 @@ func Run() error {
 }
 
 func initContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 400*time.Second)
+	return context.WithCancel(context.Background())
 }
 
 func startHTTPServer(server *http.Server, port string) {
-	slog.Info(fmt.Sprintf("starting HTTP server on port:%s", port[1:]))
+	slog.Info(fmt.Sprintf("starting HTTP server on port %s", port[1:]))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("error starting HTTP server", "error", err)
 	}
 }
 
-func shutdownServer(s *handlers.Server) error {
+func shutdownServer(s *handler.Server) error {
 	server := s.HTTPServer
 	shutdownSignals := make(chan os.Signal, 1)
 	signal.Notify(shutdownSignals, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
