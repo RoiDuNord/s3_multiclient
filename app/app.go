@@ -2,20 +2,15 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
-	"test_minio/config"
-	"test_minio/handler"
-	"test_minio/minio"
+	"s3_multiclient/config"
+	"s3_multiclient/file/minio"
+	"s3_multiclient/handler"
+	"s3_multiclient/load"
 )
 
 func Run() error {
-	ctx, cancel := initContext()
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	cfg, err := config.Get()
@@ -28,51 +23,17 @@ func Run() error {
 		return err
 	}
 
-	err = minio.CreateBucket(ctx, cfg.MinIO.BucketName, cfg.MinIO.Location)
-	if err != nil {
+	if err = minio.CreateBucket(ctx, cfg.MinIO.Location); err != nil {
 		return err
 	}
 
-	server := handler.NewServer(ctx, minio, cfg.MinIO.BucketName, cfg.App.Port)
+	loader := load.Init(minio)
 
-	go startHTTPServer(server.HTTPServer, server.HTTPServer.Addr)
+	server := handler.NewServer(ctx, loader)
 
-	return shutdownServer(server)
-
-}
-
-func initContext() (context.Context, context.CancelFunc) {
-	return context.WithCancel(context.Background())
-}
-
-func startHTTPServer(server *http.Server, port string) {
-	slog.Info(fmt.Sprintf("starting HTTP server on port %s", port[1:]))
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		slog.Error("error starting HTTP server", "error", err)
-	}
-}
-
-func shutdownServer(s *handler.Server) error {
-	server := s.HTTPServer
-	shutdownSignals := make(chan os.Signal, 1)
-	signal.Notify(shutdownSignals, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-
-	select {
-	case <-shutdownSignals:
-		slog.Info("received shutdown signal")
-	case <-s.Ctx.Done():
-		slog.Info("context deadline exceeded")
+	if err := server.Start(cfg.App); err != nil { // тут внутри горутина
+		return err
 	}
 
-	if err := server.Shutdown(s.Ctx); err != nil {
-		slog.Error("graceful shutdown failed", "error", err)
-
-		if err := server.Close(); err != nil {
-			slog.Error("forced shutdown failed", "error", err)
-			return err
-		}
-	}
-
-	slog.Info("server shutdown complete")
 	return nil
 }
