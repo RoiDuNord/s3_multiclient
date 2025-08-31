@@ -43,7 +43,7 @@ func (ml *MinioLoader) DownloadFile(ctx context.Context, pw *load.ProgressWriter
 func (ml *MinioLoader) getObjectAndMetadata(ctx context.Context, objectID string) (*minioFileObject, error) {
 	content, err := ml.client.GetObject(ctx, ml.bucketName, objectID, minio.GetObjectOptions{})
 	if err != nil {
-		slog.Error("Не удалось получить объект из MinIO", "object_id", objectID, "error", err)
+		slog.Error("Не удалось получить объект из S3 Multiclient", "object_id", objectID, "error", err)
 		return nil, fmt.Errorf("не удалось получить объект: %w", err)
 	}
 

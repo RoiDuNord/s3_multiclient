@@ -27,7 +27,7 @@ type minioFileObject struct {
 }
 
 func streamRegularFile(pw *load.ProgressWriter, object *downloadedFileData) error {
-	defer object.minioObject.reader.Close() // как изменить имена полей, чтобы они не путались
+	defer object.minioObject.reader.Close()
 
 	fileName := determineFileName(object.minioObject.info)
 
@@ -36,7 +36,15 @@ func streamRegularFile(pw *load.ProgressWriter, object *downloadedFileData) erro
 		return fmt.Errorf("не удалось отправить файл клиенту: %w", err)
 	}
 
-	slog.Info("Файл отправлен клиенту", "object_id", object.metadata.ID)
+	attrs := []slog.Attr{
+		slog.String("package", "minio"),
+		slog.String("func", "streamRegularFile"),
+		slog.String("object_id", object.metadata.ID),
+	}
+
+	// Логирование с использованием атрибутов
+	slog.Info("Файл отправлен клиенту",
+		slog.GroupAttrs(object.metadata.ID, attrs...))
 	return nil
 }
 

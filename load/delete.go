@@ -5,4 +5,6 @@ import (
 	"net/http"
 )
 
-func (l *Loader) Delete(w http.ResponseWriter, r *http.Request, ctx context.Context) error {return nil}
+func (l *Loader) Delete(w http.ResponseWriter, r *http.Request, ctx context.Context) error {
+	return nil
+}

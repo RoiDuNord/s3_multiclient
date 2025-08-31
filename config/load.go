@@ -4,94 +4,90 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 )
 
-func (mc *MinIOConfig) Load(envMap map[string]string) error {
-	var ok bool
+func (cfg *S3Config) Load(envMap map[string]string) error {
 	var missingVars []string
 
-	mc.Endpoint, ok = envMap["MINIO_ENDPOINT"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_ENDPOINT")
+	getEnv := func(key string) string {
+		val, ok := envMap[key]
+		if !ok {
+			missingVars = append(missingVars, key)
+		}
+		return val
 	}
 
-	mc.AccessKeyID, ok = envMap["MINIO_ACCESS_KEY"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_ACCESS_KEY")
+	// Обязательные поля для всех типов хранилищ
+	cfg.Type = StorageType(strings.ToLower(getEnv("S3_TYPE")))
+	cfg.Endpoint = getEnv("S3_ENDPOINT")
+	cfg.AccessKeyID = getEnv("S3_ACCESS_KEY")
+	cfg.SecretAccessKey = getEnv("S3_SECRET_KEY")
+	cfg.BucketName = getEnv("S3_BUCKET_NAME")
+	cfg.Region = getEnv("S3_REGION")
+
+	// Опциональные булевы поля
+	if useSSLStr, ok := envMap["S3_USE_SSL"]; ok {
+		cfg.UseSSL = (useSSLStr == "true")
 	}
 
-	mc.SecretAccessKey, ok = envMap["MINIO_SECRET_KEY"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_SECRET_KEY")
-	}
-
-	mc.BucketName, ok = envMap["MINIO_BUCKET_NAME"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_BUCKET_NAME")
-	}
-
-	mc.Location, ok = envMap["MINIO_LOCATION"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_LOCATION")
-	}
-
-	mc.Storage, ok = envMap["MINIO_STORAGE"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_STORAGE")
-	}
-
-	useSSLStr, ok := envMap["MINIO_USE_SSL"]
-	if !ok {
-		missingVars = append(missingVars, "MINIO_USE_SSL")
-	} else {
-		mc.UseSSL = (useSSLStr == "true")
+	// Поля, зависящие от типа хранилища
+	switch cfg.Type {
+	case StorageMinIO:
+		cfg.StorageClass = getEnv("S3_STORAGE_NAME")
+	case StorageCeph:
+		if pathStyleStr, ok := envMap["S3_PATH_STYLE"]; ok {
+			cfg.PathStyle = (pathStyleStr == "true")
+		}
+	default:
+		return fmt.Errorf("неизвестный тип хранилища: %s", cfg.Type)
 	}
 
 	if len(missingVars) > 0 {
 		for _, v := range missingVars {
 			slog.Warn(fmt.Sprintf("Переменная %s не определена в .env", v))
 		}
-		return fmt.Errorf("отсутствуют обязательные переменные окружения MINIO: %v", missingVars)
+		return fmt.Errorf("отсутствуют обязательные переменные окружения для %s: %v", cfg.Type, missingVars)
 	}
 
 	return nil
 }
 
-func (ap *AppConfig) Load(envMap map[string]string) error {
-	var ok bool
-	var missingVars []string
+func (srvcfg *ServerConfig) Load(envMap map[string]string) error {
+	// var ok bool
+	// var missingVars []string
 
-	ap.Host, ok = envMap["APP_HOST"]
-	if !ok {
-		missingVars = append(missingVars, "APP_HOST")
-	}
+	// ap.Host, ok = envMap["APP_HOST"]
+	// if !ok {
+	// 	missingVars = append(missingVars, "APP_HOST")
+	// }
 
-	if err := ap.loadPort(envMap); err != nil {
+	if err := srvcfg.loadPort(envMap); err != nil {
 		return err
 	}
 
-	if len(missingVars) > 0 {
-		for _, v := range missingVars {
-			slog.Warn(fmt.Sprintf("Переменная %s не определена в .env", v))
-		}
-		return fmt.Errorf("отсутствуют обязательные переменные окружения APP: %v", missingVars)
-	}
+	// if len(missingVars) > 0 {
+	// 	for _, v := range missingVars {
+	// 		slog.Warn(fmt.Sprintf("Переменная %s не определена в .env", v))
+	// 	}
+	// 	return fmt.Errorf("отсутствуют обязательные переменные окружения APP: %v", missingVars)
+	// }
 
 	return nil
 }
 
-func (ap *AppConfig) loadPort(envMap map[string]string) error {
-	portStr, ok := envMap["APP_PORT"]
+func (srvcfg *ServerConfig) loadPort(envMap map[string]string) error {
+	portStr, ok := envMap["SERVER_PORT"]
 	if !ok {
-		slog.Warn("Переменная APP_PORT не определена в .env")
-		return fmt.Errorf("переменная APP_PORT не определена в .env")
+		slog.Warn("Переменная SERVER_PORT не определена в .env")
+		return fmt.Errorf("переменная SERVER_PORT не определена в .env")
 	}
 
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		return fmt.Errorf("ошибка преобразования APP_PORT в число: %w", err)
+		return fmt.Errorf("ошибка преобразования SERVER_PORT в число: %w", err)
 	}
 
-	ap.Port = port
+	srvcfg.Port = port
 	return nil
 }
