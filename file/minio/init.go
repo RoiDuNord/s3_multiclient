@@ -16,14 +16,14 @@ type MinioLoader struct {
 	bucketName string
 }
 
-func Init(cfg config.MinIOConfig) (*MinioLoader, error) {
+func Init(cfg config.S3Config) (*MinioLoader, error) {
 	minioClient, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
-		Region: cfg.Location,
+		Region: cfg.Region,
 		Secure: cfg.UseSSL,
 	})
 	if err != nil {
-		slog.Error("Ошибка при подключении к MinIO", "error", err)
+		slog.Error("Ошибка при подключении к S3 Multiclient", "error", err)
 		return nil, err
 	}
 

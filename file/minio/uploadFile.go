@@ -34,10 +34,10 @@ func (ml *MinioLoader) UploadFile(ctx context.Context, progressReader *load.Prog
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("ошибка при загрузке файла в MinIO: %v", err)
+		return fmt.Errorf("ошибка при загрузке файла в S3 Multiclient: %v", err)
 	}
 
-	slog.Info("Медиафайл успешно загружен в MinIO", "object_id", objectData.ID)
+	slog.Info("Медиафайл успешно загружен в S3 Multiclient", "object_id", objectData.ID)
 	return nil
 }
 

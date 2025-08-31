@@ -1,0 +1,164 @@
+openapi: 3.0.0
+info:
+  title: S3 Multiclient API
+  description: API for uploading and downloading files from S3 storage (MinIO, Ceph)
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: API Support
+    url: http://www.example.com/support
+    email: support@example.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080/
+paths:
+  /{storage_name}/{relative_path}/objects/{object_id}/content:
+    get:
+      summary: Download file from storage
+      description: Download a file from specified storage path
+      tags:
+        - Storage
+      parameters:
+        - name: storage_name
+          in: path
+          description: Storage name
+          required: true
+          schema:
+            type: string
+        - name: relative_path
+          in: path
+          description: Relative path
+          required: true
+          schema:
+            type: string
+        - name: object_id
+          in: path
+          description: Object ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Инструкция браузеру сохранить файл с оригинальным именем
+              schema:
+                type: string
+                default: 'attachment; filename="original-filename.ext"'
+                example: 'attachment; filename="Sound.mp3"'
+            Content-Type:
+              description: MIME-тип возвращаемого файла
+              schema:
+                type: string
+                default: application/octet-stream
+                example: audio/mpeg
+            Date:
+              description: Дата ответа сервера
+              schema:
+                type: string
+                format: date-time
+                example: Sat, 30 Aug 2025 09:33:22 GMT
+            Transfer-Encoding:
+              description: Тип передачи данных
+              schema:
+                type: string
+                default: chunked
+                example: chunked
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/serverErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/serverErrorResponse"
+    post:
+      summary: Upload file to storage
+      description: Upload a file to specified storage path
+      tags:
+        - Storage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+              required:
+                - file
+      parameters:
+        - name: storage_name
+          in: path
+          description: Storage name
+          required: true
+          schema:
+            type: string
+        - name: relative_path
+          in: path
+          description: Relative path
+          required: true
+          schema:
+            type: string
+        - name: object_id
+          in: path
+          description: Object ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/serverObjectResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/serverErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/serverErrorResponse"
+components:
+  schemas:
+    serverObjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        size_mb:
+          type: integer
+        status:
+          type: string
+        type:
+          type: string
+    serverErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: integer

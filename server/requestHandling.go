@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -17,6 +18,16 @@ const (
 	defaultUploadFileName  = "default_name.bin"
 	successfulUploadStatus = "uploaded"
 )
+
+func validateStorageName(r *http.Request, storageName string) string {
+	nameInReqPes := chi.URLParam(r, storageName)
+	nameInCfg := os.Getenv("S3_STORAGE_NAME")
+	if nameInReqPes == nameInCfg {
+		return ""
+	}
+	msg := fmt.Sprintf("Неверное имя хранилища в запросе, ожидается: %s", nameInCfg)
+	return msg
+}
 
 func getIDandCRC(parsedData string) (handledData *DownloadRequestMetadata, err error) {
 	parsedData = strings.TrimSpace(parsedData)

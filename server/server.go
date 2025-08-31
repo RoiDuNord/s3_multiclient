@@ -11,7 +11,10 @@ import (
 	"s3_multiclient/config"
 	"syscall"
 
+	_ "s3_multiclient/docs"
+
 	"github.com/go-chi/chi"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type LoadManager interface {
@@ -51,16 +54,33 @@ func Init(ctx context.Context, lm LoadManager) *Server {
 	}
 }
 
+//	@title			S3 Multiclient API
+//	@version		1.0
+//	@description	API for uploading and downloading files from S3 storage (MinIO, Ceph)
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
+//	@contact.url	http://www.example.com/support
+//	@contact.email	support@example.com
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host		localhost:8080
+// @BasePath	/
 func (s *Server) setupRouter() *chi.Mux {
 	router := chi.NewRouter()
 	router.Post("/{storage_name}/{relative_path}/objects/{object_id}/content", s.Upload)
 	router.Get("/{storage_name}/{relative_path}/objects/{object_id}/content", s.Download)
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 	return router
 }
 
-func (s *Server) Start(cfg config.AppConfig) error {
+func (s *Server) MustStart(srvcfg config.ServerConfig) error {
 	router := s.setupRouter()
-	address := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	address := fmt.Sprintf("%s:%d", srvcfg.Host, srvcfg.Port)
 
 	slog.Info("запуск HTTP сервера", "address", address)
 	httpServer := &http.Server{
@@ -71,7 +91,7 @@ func (s *Server) Start(cfg config.AppConfig) error {
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			// slog.Error("Ошибка запуска сервера", "error", err)
-			log.Fatalf("Сервер не стартовал: %s", err)
+			log.Fatalf("Сервер не стартовал: %s", err.Error())
 		}
 	}()
 
