@@ -91,7 +91,7 @@ func (s3Cfg *S3Config) Validate() error {
 
 func (srvcfg *ServerConfig) Validate() error {
 	if srvcfg.Port <= 0 || srvcfg.Port > 65535 {
-		return fmt.Errorf("APP_PORT должен быть в диапазоне 1-65535, получено: %d", srvcfg.Port)
+		return fmt.Errorf("SERVER_PORT должен быть в диапазоне 1-65535, получено: %d", srvcfg.Port)
 	}
 	return nil
 }

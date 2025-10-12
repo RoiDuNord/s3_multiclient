@@ -9,7 +9,7 @@ import (
 	"s3_multiclient/server"
 )
 
-func Run() error {
+func MustRun() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

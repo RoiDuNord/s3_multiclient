@@ -84,7 +84,7 @@ func (s *Server) MustStart(srvcfg config.ServerConfig) error {
 
 	slog.Info("запуск HTTP сервера", "address", address)
 	httpServer := &http.Server{
-		Address: address,
+		Addr:    address,
 		Handler: router,
 	}
 

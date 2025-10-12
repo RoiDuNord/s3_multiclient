@@ -88,3 +88,4 @@ func MustLoad() (Config, error) {
 
 	return cfg, nil
 }
+
